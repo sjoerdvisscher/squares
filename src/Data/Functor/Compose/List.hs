@@ -1,9 +1,24 @@
-{-# LANGUAGE GADTs, DataKinds, KindSignatures, TypeOperators, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Functor.Compose.List
+-- License     :  BSD-style (see the file LICENSE)
+-- Maintainer  :  sjoerd@w3future.com
+--
+-----------------------------------------------------------------------------
 module Data.Functor.Compose.List where
 
 import Data.Type.List
 
--- FList '[f, g, h] = h (g (f a))
+-- | N-ary composition of functors.
+--
+-- > FList '[] a ~ a
+-- > FList '[f, g, h] a ~ h (g (f a))
 data FList (fs :: [* -> *]) (a :: *) where
   Id :: { unId :: a } -> FList '[] a
   F :: { unF :: f a } -> FList '[f] a
@@ -16,6 +31,7 @@ instance Functor f => Functor (FList '[f]) where
 instance (Functor f, Functor (FList (g ': gs))) => Functor (FList (f ': g ': gs)) where
   fmap f = Compose . fmap (fmap f) . getCompose
 
+-- | Combining and splitting nested `FList`s.
 class FAppend f where
   fappend :: Functor (FList g) => FList g (FList f a) -> FList (f ++ g) a
   funappend :: Functor (FList g) => FList (f ++ g) a -> FList g (FList f a)
