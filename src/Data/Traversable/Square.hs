@@ -1,6 +1,4 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE BlockArguments #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Traversable.Square
@@ -13,8 +11,6 @@ module Data.Traversable.Square where
 import Prelude hiding (traverse)
 import Data.Square
 import Data.Profunctor
-import Data.Functor.Compose.List
-import Data.Profunctor.Composition.List
 import qualified Data.Traversable as T
 
 -- |
@@ -52,7 +48,7 @@ import qualified Data.Traversable as T
 -- > |  v  |     |  v  |
 -- > +--t--+     +--t--+
 traverse :: (Traversable t, Applicative f) => Square '[Star f] '[Star f] '[t] '[t]
-traverse = Square \(P (Star afb)) -> P (Star (fmap F . T.traverse afb . unF))
+traverse = mkSquare (Star . T.traverse . runStar)
 
 -- |
 -- > +-f-t---+

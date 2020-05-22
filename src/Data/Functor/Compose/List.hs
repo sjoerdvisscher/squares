@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -22,14 +23,15 @@ import Data.Type.List
 data FList (fs :: [* -> *]) (a :: *) where
   Id :: { unId :: a } -> FList '[] a
   F :: { unF :: f a } -> FList '[f] a
-  Compose :: { getCompose :: FList (g ': gs) (f a) } -> FList (f ': g ': gs) a
+  FComp :: { unFComp :: FList (g ': gs) (f a) } -> FList (f ': g ': gs) a
 
 instance Functor (FList '[]) where
   fmap f = Id . f . unId
 instance Functor f => Functor (FList '[f]) where
   fmap f = F . fmap f . unF
 instance (Functor f, Functor (FList (g ': gs))) => Functor (FList (f ': g ': gs)) where
-  fmap f = Compose . fmap (fmap f) . getCompose
+  fmap f = FComp . fmap (fmap f) . unFComp
+
 
 -- | Combining and splitting nested `FList`s.
 class FAppend f where
@@ -40,11 +42,15 @@ instance FAppend '[] where
   funappend = fmap Id
 instance FAppend '[f] where
   fappend (Id fa) = F (unF fa)
-  fappend f@F{} = Compose $ fmap unF f
-  fappend f@Compose{} = Compose $ fmap unF f
+  fappend f@F{} = FComp $ fmap unF f
+  fappend f@FComp{} = FComp $ fmap unF f
   funappend fa@F{} = Id fa
-  funappend (Compose fga@F{}) = fmap F fga
-  funappend (Compose fga@Compose{}) = fmap F fga
+  funappend (FComp fga@F{}) = fmap F fga
+  funappend (FComp fga@FComp{}) = fmap F fga
 instance (Functor f, FAppend (g ': gs)) => FAppend (f ': g ': gs) where
-  fappend = Compose . fappend . fmap getCompose
-  funappend = fmap Compose . funappend . getCompose
+  fappend = FComp . fappend . fmap unFComp
+  funappend = fmap FComp . funappend . unFComp
+
+
+-- | Natural transformations between two functors. (Why is this still not in base??)
+type f ~> g = forall a. f a -> g a

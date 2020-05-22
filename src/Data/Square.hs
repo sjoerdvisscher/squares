@@ -35,28 +35,28 @@ import Data.Kind
 --
 -- The squares in this double category are natural transformations.
 
--- |@
--- +-----+
--- |     |
--- |     |
--- |     |
--- +-----+
+-- |
+-- > +-----+
+-- > |     |
+-- > |     |
+-- > |     |
+-- > +-----+
 --
--- forall a b. (a -> b) -> (a -> b)
--- @
+-- > forall a b. (a -> b) -> (a -> b)
+--
 -- The empty square is the identity transformation.
 emptySquare :: Square '[] '[] '[] '[]
 emptySquare = Square $ dimap unId Id
 
--- |@
--- +-----+
--- |     |
--- p-----p
--- |     |
--- +-----+
+-- |
+-- > +-----+
+-- > |     |
+-- > p-----p
+-- > |     |
+-- > +-----+
 --
--- forall a b. p a b -> p a b
--- @
+-- > forall a b. p a b -> p a b
+--
 -- Profunctors are drawn as horizontal lines.
 --
 -- Note that `emptySquare` is `proId` for the profunctor @(->)@.
@@ -96,28 +96,28 @@ funId = Square \(Hom f) -> Hom (fmap f)
 funNat :: (Functor f, Functor g) => (f ~> g) -> Square '[] '[] '[f] '[g]
 funNat n = Square $ Hom . dimap unF F . (.) n . fmap . unHom
 
--- |@
--- +-----+
--- |     |
--- p--\@--q
--- |     |
--- +-----+
+-- |
+-- > +-----+
+-- > |     |
+-- > p--@--q
+-- > |     |
+-- > +-----+
 --
--- forall a b. p a b -> q a b
--- @
+-- > forall a b. p a b -> q a b
+--
 -- Natural transformations between profunctors.
 proNat :: (Profunctor p, Profunctor q) => (p :-> q) -> Square '[p] '[q] '[] '[]
 proNat n = Square $ P . dimap unId Id . n . unP
 
--- |@
--- +--f--+
--- |  v  |
--- p--\@--q
--- |  v  |
--- +--g--+
+-- |
+-- > +--f--+
+-- > |  v  |
+-- > p--@--q
+-- > |  v  |
+-- > +--g--+
 --
--- forall a b. p a b -> q (f a) (g b)
--- @
+-- > forall a b. p a b -> q (f a) (g b)
+--
 -- The complete definition of a square is a combination of natural transformations
 -- between functors and natural transformations between profunctors.
 --
@@ -127,24 +127,27 @@ type SquareNT :: (a -> b -> Type) -> (c -> d -> Type) -> (a -> c) -> (b -> d) ->
 #endif
 newtype SquareNT p q f g = Square { unSquare :: forall a b. p a b -> q (f a) (g b) }
 
--- | To make composing squares associative, we work with lists of functors and profunctors,
+-- | To make composing squares associative, this library uses squares with lists of functors and profunctors,
 -- which are composed together.
 --
--- @
--- FList '[] a ~ a
--- FList '[f,g,h] a ~ h (g (f a))
--- PList '[] a b ~ a -> b
--- PList '[p, q, r] a b ~ (p a x, q x y, r y b)
--- @
+-- > FList '[] a ~ a
+-- > FList '[f, g, h] a ~ h (g (f a))
+-- > PList '[] a b ~ a -> b
+-- > PList '[p, q, r] a b ~ (p a x, q x y, r y b)
 type Square ps qs fs gs = SquareNT (PList ps) (PList qs) (FList fs) (FList gs)
 
--- |@
--- +--f--+     +--h--+       +--f--h--+
--- |  v  |     |  v  |       |  v  v  |
--- p--\@--q ||| q--\@--r  ==>  p--\@--\@--r
--- |  v  |     |  v  |       |  v  v  |
--- +--g--+     +--i--+       +--g--i--+
--- @
+-- | A helper function to add the wrappers needed for `PList` and `FList`,
+-- if the square has exactly one (pro)functor on each side (which is common).
+mkSquare :: Profunctor q => (forall a b. p a b -> q (f a) (g b)) -> Square '[p] '[q] '[f] '[g]
+mkSquare f = Square (P . dimap unF F . f . unP)
+
+-- |
+-- > +--f--+     +--h--+       +--f--h--+
+-- > |  v  |     |  v  |       |  v  v  |
+-- > p--@--q ||| q--@--r  ==>  p--@--@--r
+-- > |  v  |     |  v  |       |  v  v  |
+-- > +--g--+     +--i--+       +--g--i--+
+--
 -- Horizontal composition of squares. `proId` is the identity of `(|||)`.
 infixl 6 |||
 (|||) :: (Profunctor (PList rs), FAppend fs, FAppend gs, Functor (FList hs), Functor (FList is))
@@ -269,9 +272,8 @@ spiderLemma n =
   ===
   toLeft ||| funId ||| toRight
 
--- |@
--- spiderLemma' n = (toRight === proId === fromRight) ||| n ||| (toLeft === proId === fromLeft)
--- @
+-- |> spiderLemma' n = (toRight === proId === fromRight) ||| n ||| (toLeft === proId === fromLeft)
+--
 -- The spider lemma in the other direction.
 spiderLemma' :: (Profunctor p, Profunctor q, Functor f1, Functor f2, Functor f3, Functor g1, Functor g2, Functor g3)
   => Square '[Star f1, p, Costar g1] '[Costar f3, q, Star g3] '[f2] '[g2]
@@ -333,7 +335,3 @@ data Unit a b where
 -- | Values as a functor from the unit category.
 data ValueF x u where
   ValueF :: a -> ValueF a '()
-
-
--- | Natural transformations between 2 functors. (Why is this still not in base??)
-type f ~> g = forall a. f a -> g a

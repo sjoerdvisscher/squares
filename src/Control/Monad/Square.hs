@@ -1,6 +1,4 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE BlockArguments #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Control.Monad.Square
@@ -13,9 +11,8 @@ module Control.Monad.Square where
 import Prelude hiding (return)
 import Data.Square
 import Data.Profunctor
-import Data.Functor.Compose.List
-import Data.Profunctor.Composition.List
-import qualified Control.Monad as M (return, (>=>))
+import Data.Profunctor.Square
+import qualified Control.Monad as M
 
 -- |
 -- > +-----+
@@ -24,7 +21,7 @@ import qualified Control.Monad as M (return, (>=>))
 -- > |     |
 -- > +-----+
 return :: Monad m => Square '[] '[Star m] '[] '[]
-return = Square \(Hom f) -> P (Star (M.return . Id . f . unId))
+return = toHom ||| proNat (Star . (M.return .))
 
 -- |
 -- > +--m--+
@@ -62,7 +59,7 @@ return = Square \(Hom f) -> P (Star (M.return . Id . f . unId))
 -- > |  v  |     |     v  |
 -- > +--m--+     +-----m--+
 bind :: Monad m => Square '[Star m] '[] '[m] '[m]
-bind = Square \(P (Star amb)) -> Hom \(F ma) -> F (ma >>= amb)
+bind = mkSquare (flip (>>=) . runStar) ||| fromHom
 
 -- |
 -- > +-m-m-+
