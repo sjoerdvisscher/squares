@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -32,24 +33,40 @@ instance Functor f => Functor (FList '[f]) where
 instance (Functor f, Functor (FList (g ': gs))) => Functor (FList (f ': g ': gs)) where
   fmap f = FComp . fmap (fmap f) . unFComp
 
+-- | Calculate the simplified type of the composition of a list of functors.
+type family PlainF (fs :: [* -> *]) (a :: *) :: *
+type instance PlainF '[] a = a
+type instance PlainF (f ': fs) a = PlainF fs (f a)
 
--- | Combining and splitting nested `FList`s.
-class FAppend f where
-  fappend :: Functor (FList g) => FList g (FList f a) -> FList (f ++ g) a
-  funappend :: Functor (FList g) => FList (f ++ g) a -> FList g (FList f a)
-instance FAppend '[] where
+-- | Functions for working with `FList`s.
+class IsFList fs where
+  -- | Combine 2 nested `FList`s into one `FList`.
+  fappend :: Functor (FList gs) => FList gs (FList fs a) -> FList (fs ++ gs) a
+  -- | Split one `FList` into 2 nested `FList`s.
+  funappend :: Functor (FList gs) => FList (fs ++ gs) a -> FList gs (FList fs a)
+  -- | Convert an `FList` to its simplified form.
+  toPlainF :: FList fs a -> PlainF fs a
+  -- | Create an `FList` from its simplified form.
+  fromPlainF :: PlainF fs a -> FList fs a
+instance IsFList '[] where
   fappend = fmap unId
   funappend = fmap Id
-instance FAppend '[f] where
+  toPlainF (Id a) = a
+  fromPlainF a = Id a
+instance IsFList '[f] where
   fappend (Id fa) = F (unF fa)
   fappend f@F{} = FComp $ fmap unF f
   fappend f@FComp{} = FComp $ fmap unF f
   funappend fa@F{} = Id fa
   funappend (FComp fga@F{}) = fmap F fga
   funappend (FComp fga@FComp{}) = fmap F fga
-instance (Functor f, FAppend (g ': gs)) => FAppend (f ': g ': gs) where
+  toPlainF (F fa) = fa
+  fromPlainF fa = F fa
+instance IsFList (g ': gs) => IsFList (f ': g ': gs) where
   fappend = FComp . fappend . fmap unFComp
   funappend = fmap FComp . funappend . unFComp
+  toPlainF (FComp fgs) = toPlainF fgs
+  fromPlainF fgs = FComp (fromPlainF fgs)
 
 
 -- | Natural transformations between two functors. (Why is this still not in base??)

@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -30,19 +31,37 @@ instance Profunctor p => Profunctor (PList '[p]) where
 instance (Profunctor p, Profunctor (PList (q ': qs))) => Profunctor (PList (p ': q ': qs)) where
   dimap l r (PComp p ps) = PComp (lmap l p) (rmap r ps)
 
--- | Combining and splitting nested `PList`s.
-class PAppend p where
-  pappend :: Profunctor (PList q) => Procompose (PList q) (PList p) a b -> PList (p ++ q) a b
-  punappend :: PList (p ++ q) a b -> Procompose (PList q) (PList p) a b
-instance PAppend '[] where
+-- | Calculate the simplified type of the composition of a list of profunctors.
+type family PlainP (ps :: [* -> * -> *]) :: * -> * -> *
+type instance PlainP '[] = (->)
+type instance PlainP '[p] = p
+type instance PlainP (p ': q ': qs) = Procompose (PlainP (q ': qs)) p
+
+-- | Functions for working with `PList`s.
+class IsPList ps where
+  -- | Combine 2 nested `PList`s into one `PList`.
+  pappend :: Profunctor (PList qs) => Procompose (PList qs) (PList ps) :-> PList (ps ++ qs)
+  -- | Split one `PList` into 2 nested `PList`s.
+  punappend :: PList (ps ++ qs) :-> Procompose (PList qs) (PList ps)
+  -- | Convert a `PList` to its simplified form.
+  toPlainP :: PList ps :-> PlainP ps
+  -- | Create a `PList` from its simplified form.
+  fromPlainP :: PlainP ps :-> PList ps
+instance IsPList '[] where
   pappend (Procompose q (Hom f)) = lmap f q
   punappend q = Procompose q (Hom id)
-instance Profunctor p => PAppend '[p] where
+  toPlainP (Hom f) = f
+  fromPlainP f = Hom f
+instance Profunctor p => IsPList '[p] where
   pappend (Procompose (Hom f) (P p)) = P (rmap f p)
   pappend (Procompose q@P{} (P p)) = PComp p q
   pappend (Procompose q@PComp{} (P p)) = PComp p q
   punappend p@P{} = Procompose (Hom id) p
   punappend (PComp p qs) = Procompose qs (P p)
-instance (Profunctor p, PAppend (q ': qs)) => PAppend (p ': q ': qs) where
+  toPlainP (P p) = p
+  fromPlainP p = P p
+instance IsPList (q ': qs) => IsPList (p ': q ': qs) where
   pappend (Procompose q (PComp p ps)) = PComp p (pappend (Procompose q ps))
   punappend (PComp p pq) = case punappend pq of Procompose q ps -> Procompose q (PComp p ps)
+  toPlainP (PComp p pq) = Procompose (toPlainP pq) p
+  fromPlainP (Procompose pq p) = PComp p (fromPlainP pq)

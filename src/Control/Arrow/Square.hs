@@ -10,8 +10,8 @@
 module Control.Arrow.Square where
 
 import Data.Square
-import Data.Functor.Compose.List
 import Data.Profunctor
+import Data.Profunctor.Composition
 import Data.Profunctor.Composition.List
 import qualified Control.Arrow as A
 
@@ -21,8 +21,8 @@ import qualified Control.Arrow as A
 -- > |  @--a
 -- > |     |
 -- > +-----+
-arr :: A.Arrow a => Square '[] '[a] '[] '[]
-arr = Square (P . A.arr . dimap unId Id . unHom)
+arr :: (A.Arrow a, Profunctor a) => Square '[] '[a] '[] '[]
+arr = mkSquare A.arr
 
 -- |
 -- > +-----+
@@ -30,8 +30,8 @@ arr = Square (P . A.arr . dimap unId Id . unHom)
 -- > |  @--a
 -- > a--/  |
 -- > +-----+
-(>>>) :: A.Arrow a => Square '[a, a] '[a] '[] '[]
-(>>>) = Square (\(PComp p (P q)) -> P (A.arr Id A.<<< q A.<<< p A.<<< A.arr unId))
+(>>>) :: (A.Arrow a, Profunctor a) => Square '[a, a] '[a] '[] '[]
+(>>>) = mkSquare (\(Procompose q p) -> q A.<<< p)
 
 -- |
 -- > +-_⊗d-+
@@ -39,8 +39,8 @@ arr = Square (P . A.arr . dimap unId Id . unHom)
 -- > a--@--a
 -- > |  v  |
 -- > +-_⊗d-+
-second :: A.Arrow a => Square '[a] '[a] '[(,) d] '[(,) d]
-second = Square (P . (A.>>> A.arr F) . (A.<<< A.arr unF) . A.second . unP)
+second :: (A.Arrow a, Profunctor a) => Square '[a] '[a] '[(,) d] '[(,) d]
+second = mkSquare A.second
 
 -- |
 -- > H²-⊗--H
@@ -57,8 +57,8 @@ second = Square (P . (A.>>> A.arr F) . (A.<<< A.arr unF) . A.second . unP)
 -- > a--@--a
 -- > |  v  |
 -- > +-_⊕d-+
-right :: A.ArrowChoice a => Square '[a] '[a] '[Either d] '[Either d]
-right = Square (P . (A.>>> A.arr F) . (A.<<< A.arr unF) . A.right . unP)
+right :: (A.ArrowChoice a, Profunctor a) => Square '[a] '[a] '[Either d] '[Either d]
+right = mkSquare A.right
 
 -- |
 -- > H²-⊕--H

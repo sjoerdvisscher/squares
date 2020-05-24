@@ -11,17 +11,16 @@ module Control.Monad.Square where
 import Prelude hiding (return)
 import Data.Square
 import Data.Profunctor
-import Data.Profunctor.Square
 import qualified Control.Monad as M
 
 -- |
 -- > +-----+
 -- > |     |
--- > |  R->m
--- > |     |
--- > +-----+
-return :: Monad m => Square '[] '[Star m] '[] '[]
-return = toHom ||| proNat (Star . (M.return .))
+-- > |  R  |
+-- > |  v  |
+-- > +--m--+
+return :: Monad m => Square '[] '[] '[] '[m]
+return = mkSquare (M.return .)
 
 -- |
 -- > +--m--+
@@ -59,7 +58,7 @@ return = toHom ||| proNat (Star . (M.return .))
 -- > |  v  |     |     v  |
 -- > +--m--+     +-----m--+
 bind :: Monad m => Square '[Star m] '[] '[m] '[m]
-bind = mkSquare (flip (>>=) . runStar) ||| fromHom
+bind = mkSquare (flip (>>=) . runStar)
 
 -- |
 -- > +-m-m-+

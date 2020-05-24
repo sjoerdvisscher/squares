@@ -10,8 +10,6 @@
 module Data.Profunctor.Square where
 
 import Data.Square
-import Data.Functor.Compose.List
-import Data.Profunctor.Composition.List
 import qualified Data.Profunctor as P
 import Data.Profunctor.Composition
 
@@ -62,7 +60,7 @@ map = mkSquare P.map'
 -- >  |     |
 -- >  +-----+
 fromHom :: Square '[(->)] '[] '[] '[]
-fromHom = Square (Hom . P.dimap unId Id . unP)
+fromHom = mkSquare id
 
 -- |
 -- > +-----+
@@ -71,7 +69,7 @@ fromHom = Square (Hom . P.dimap unId Id . unP)
 -- > |     |
 -- > +-----+
 toHom :: Square '[] '[(->)] '[] '[]
-toHom = Square (P . P.dimap unId Id . unHom)
+toHom = mkSquare id
 
 -- * Squares for `Procompose`
 
@@ -82,7 +80,7 @@ toHom = Square (P . P.dimap unId Id . unHom)
 -- >  |   \-q
 -- >  +-----+
 fromProcompose :: (P.Profunctor p, P.Profunctor q) => Square '[Procompose q p] '[p, q] '[] '[]
-fromProcompose = Square ((\(Procompose q p) -> PComp (P.lmap unId p) (P (P.rmap Id q))) . unP)
+fromProcompose = mkSquare id
 
 -- |
 -- >  +-----+
@@ -91,4 +89,4 @@ fromProcompose = Square ((\(Procompose q p) -> PComp (P.lmap unId p) (P (P.rmap 
 -- >  q-/   |
 -- >  +-----+
 toProcompose :: (P.Profunctor p, P.Profunctor q) => Square '[p, q] '[Procompose q p] '[] '[]
-toProcompose = Square (P . (\(PComp p (P q)) -> Procompose (P.rmap Id q) (P.lmap unId p)))
+toProcompose = mkSquare id

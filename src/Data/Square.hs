@@ -45,7 +45,7 @@ import Data.Kind
 --
 -- The empty square is the identity transformation.
 emptySquare :: Square '[] '[] '[] '[]
-emptySquare = Square (dimap unId Id)
+emptySquare = mkSquare id
 
 -- |
 -- > +-----+
@@ -61,7 +61,7 @@ emptySquare = Square (dimap unId Id)
 -- Note that `emptySquare` is `proId` for the profunctor @(->)@.
 -- We don't draw a line for @(->)@ because it is the identity for profunctor composition.
 proId :: Profunctor p => Square '[p] '[p] '[] '[]
-proId = Square (dimap unId Id)
+proId = mkSquare id
 
 -- |
 -- > +--f--+
@@ -77,7 +77,7 @@ proId = Square (dimap unId Id)
 --
 -- We don't draw lines for the identity functor, because it is the identity for functor composition.
 funId :: Functor f => Square '[] '[] '[f] '[f]
-funId = Square (Hom . fmap . unHom)
+funId = mkSquare fmap
 
 -- |
 -- > +--f--+
@@ -93,7 +93,7 @@ funId = Square (Hom . fmap . unHom)
 -- @forall a. f a -> g a@. The type above you get when `fmap`ping before or after.
 -- (It doesn't matter which, because of naturality!)
 funNat :: (Functor f, Functor g) => (f ~> g) -> Square '[] '[] '[f] '[g]
-funNat n = Square (Hom . dimap unF F . (.) n . fmap . unHom)
+funNat n = mkSquare ((.) n . fmap)
 
 -- |
 -- > +-----+
@@ -106,7 +106,7 @@ funNat n = Square (Hom . dimap unF F . (.) n . fmap . unHom)
 --
 -- Natural transformations between profunctors.
 proNat :: (Profunctor p, Profunctor q) => (p :-> q) -> Square '[p] '[q] '[] '[]
-proNat n = Square (P . dimap unId Id . n . unP)
+proNat n = mkSquare n
 
 -- |
 -- > +--f--+
@@ -135,10 +135,19 @@ newtype SquareNT p q f g = Square { unSquare :: forall a b. p a b -> q (f a) (g 
 -- > PList '[p, q, r] a b ~ (p a x, q x y, r y b)
 type Square ps qs fs gs = SquareNT (PList ps) (PList qs) (FList fs) (FList gs)
 
--- | A helper function to add the wrappers needed for `PList` and `FList`,
--- if the square has exactly one (pro)functor on each side (which is common).
-mkSquare :: Profunctor q => (forall a b. p a b -> q (f a) (g b)) -> Square '[p] '[q] '[f] '[g]
-mkSquare f = Square (P . dimap unF F . f . unP)
+-- | A helper function to add the wrappers needed for `PList` and `FList`.
+mkSquare
+  :: (IsPList ps, IsPList qs, IsFList fs, IsFList gs, Profunctor (PList qs))
+  => (forall a b. PlainP ps a b -> PlainP qs (PlainF fs a) (PlainF gs b))
+  -> Square ps qs fs gs -- ^
+mkSquare n = Square (dimap toPlainF fromPlainF . dimap toPlainP fromPlainP n)
+
+-- | A helper function to remove the wrappers needed for `PList` and `FList`.
+runSquare
+  :: (IsPList ps, IsPList qs, IsFList fs, IsFList gs, Profunctor (PList qs))
+  => Square ps qs fs gs
+  -> PlainP ps a b -> PlainP qs (PlainF fs a) (PlainF gs b)
+runSquare (Square n) = dimap fromPlainP toPlainP (dimap fromPlainF toPlainF . n)
 
 -- |
 -- > +--f--+     +--h--+       +--f--h--+
@@ -150,7 +159,7 @@ mkSquare f = Square (P . dimap unF F . f . unP)
 -- Horizontal composition of squares. `proId` is the identity of `(|||)`.
 -- This is regular function composition of the underlying functions.
 infixl 6 |||
-(|||) :: (Profunctor (PList rs), FAppend fs, FAppend gs, Functor (FList hs), Functor (FList is))
+(|||) :: (Profunctor (PList rs), IsFList fs, IsFList gs, Functor (FList hs), Functor (FList is))
       => Square ps qs fs gs -> Square qs rs hs is -> Square ps rs (fs ++ hs) (gs ++ is) -- ^
 Square pq ||| Square qr = Square (dimap funappend fappend . qr . pq)
 
@@ -169,7 +178,7 @@ Square pq ||| Square qr = Square (dimap funappend fappend . qr . pq)
 --
 -- Vertical composition of squares. `funId` is the identity of `(===)`.
 infixl 5 ===
-(===) :: (PAppend ps, PAppend qs, Profunctor (PList ss))
+(===) :: (IsPList ps, IsPList qs, Profunctor (PList ss))
       => Square ps qs fs gs -> Square rs ss gs hs -> Square (ps ++ rs) (qs ++ ss) fs hs -- ^
 Square pq === Square rs = Square (\pr -> case punappend pr of P.Procompose r p -> pappend (P.Procompose (rs r) (pq p)))
 
@@ -189,7 +198,7 @@ Square pq === Square rs = Square (\pr -> case punappend pr of P.Procompose r p -
 --
 -- A functor @f@ can be bent to the right to become the profunctor @`Star` f@.
 toRight :: Functor f => Square '[] '[Star f] '[f] '[]
-toRight = Square (P . Star . (. unF) . fmap . (Id .) . unHom)
+toRight = mkSquare (Star . fmap)
 
 -- |
 -- > +--f--+
@@ -199,8 +208,8 @@ toRight = Square (P . Star . (. unF) . fmap . (Id .) . unHom)
 -- > +-----+
 --
 -- A functor @f@ can be bent to the left to become the profunctor @`Costar` f@.
-toLeft :: Square '[Costar f] '[] '[f] '[]
-toLeft = Square (Hom . dimap unF Id . runCostar . unP)
+toLeft :: Functor f => Square '[Costar f] '[] '[f] '[]
+toLeft = mkSquare runCostar
 
 -- |
 -- > +-----+
@@ -211,7 +220,7 @@ toLeft = Square (Hom . dimap unF Id . runCostar . unP)
 --
 -- The profunctor @`Costar` f@ can be bent down to become the functor @f@ again.
 fromRight :: Functor f => Square '[] '[Costar f] '[] '[f]
-fromRight = Square (P . Costar . (F .) . fmap . (. unId) . unHom)
+fromRight = mkSquare (Costar . fmap)
 
 -- |
 -- > +-----+
@@ -221,8 +230,8 @@ fromRight = Square (P . Costar . (F .) . fmap . (. unId) . unHom)
 -- > +--f--+
 --
 -- The profunctor @`Star` f@ can be bent down to become the functor @f@ again.
-fromLeft :: Square '[Star f] '[] '[] '[f]
-fromLeft = Square (Hom . dimap unId F . runStar . unP)
+fromLeft :: Functor f => Square '[Star f] '[] '[] '[f]
+fromLeft = mkSquare runStar
 
 -- |
 -- > +-----+
@@ -326,7 +335,7 @@ data UncurryF f a where
 -- > |  v  |
 -- > 1--b--H
 --
-type Square01 q a b = SquareNT Unit (PList q) (ValueF a) (ValueF b)
+type Square01 qs a b = SquareNT Unit (PList qs) (ValueF a) (ValueF b)
 
 -- | The boring profunctor from and to the unit category.
 data Unit a b where
