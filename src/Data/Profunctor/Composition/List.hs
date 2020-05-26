@@ -2,9 +2,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ConstrainedClassMethods #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Profunctor.Composition.List
@@ -40,7 +40,7 @@ type instance PlainP (p ': q ': qs) = Procompose (PlainP (q ': qs)) p
 -- | Functions for working with `PList`s.
 class IsPList ps where
   -- | Combine 2 nested `PList`s into one `PList`.
-  pappend :: Profunctor (PList qs) => Procompose (PList qs) (PList ps) :-> PList (ps ++ qs)
+  pappend :: (Profunctor (PList ps), Profunctor (PList qs)) => Procompose (PList qs) (PList ps) :-> PList (ps ++ qs)
   -- | Split one `PList` into 2 nested `PList`s.
   punappend :: PList (ps ++ qs) :-> Procompose (PList qs) (PList ps)
   -- | Convert a `PList` to its simplified form.
@@ -52,15 +52,15 @@ instance IsPList '[] where
   punappend q = Procompose q (Hom id)
   toPlainP (Hom f) = f
   fromPlainP f = Hom f
-instance Profunctor p => IsPList '[p] where
-  pappend (Procompose (Hom f) (P p)) = P (rmap f p)
+instance IsPList '[p] where
+  pappend (Procompose (Hom f) p) = rmap f p
   pappend (Procompose q@P{} (P p)) = PComp p q
   pappend (Procompose q@PComp{} (P p)) = PComp p q
   punappend p@P{} = Procompose (Hom id) p
   punappend (PComp p qs) = Procompose qs (P p)
   toPlainP (P p) = p
   fromPlainP p = P p
-instance IsPList (q ': qs) => IsPList (p ': q ': qs) where
+instance (Profunctor (PList (q ': qs)), IsPList (q ': qs)) => IsPList (p ': q ': qs) where
   pappend (Procompose q (PComp p ps)) = PComp p (pappend (Procompose q ps))
   punappend (PComp p pq) = case punappend pq of Procompose q ps -> Procompose q (PComp p ps)
   toPlainP (PComp p pq) = Procompose (toPlainP pq) p

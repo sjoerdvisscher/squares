@@ -106,7 +106,7 @@ funNat n = mkSquare ((n .) . fmap)
 --
 -- Natural transformations between profunctors.
 proNat :: (Profunctor p, Profunctor q) => (p :-> q) -> Square '[p] '[q] '[] '[]
-proNat n = mkSquare n
+proNat = mkSquare
 
 -- |
 -- > +--f--+
@@ -178,7 +178,7 @@ Square pq ||| Square qr = Square (dimap funappend fappend . qr . pq)
 --
 -- Vertical composition of squares. `funId` is the identity of `(===)`.
 infixl 5 ===
-(===) :: (IsPList ps, IsPList qs, Profunctor (PList ss))
+(===) :: (IsPList ps, IsPList qs, Profunctor (PList qs), Profunctor (PList ss))
       => Square ps qs fs gs -> Square rs ss gs hs -> Square (ps ++ rs) (qs ++ ss) fs hs -- ^
 Square pq === Square rs = Square (\pr -> case punappend pr of P.Procompose r p -> pappend (P.Procompose (rs r) (pq p)))
 
@@ -208,7 +208,7 @@ toRight = mkSquare (Star . fmap)
 -- > +-----+
 --
 -- A functor @f@ can be bent to the left to become the profunctor @`Costar` f@.
-toLeft :: Functor f => Square '[Costar f] '[] '[f] '[]
+toLeft :: Square '[Costar f] '[] '[f] '[]
 toLeft = mkSquare runCostar
 
 -- |
@@ -230,7 +230,7 @@ fromRight = mkSquare (Costar . fmap)
 -- > +--f--+
 --
 -- The profunctor @`Star` f@ can be bent down to become the functor @f@ again.
-fromLeft :: Functor f => Square '[Star f] '[] '[] '[f]
+fromLeft :: Square '[Star f] '[] '[] '[f]
 fromLeft = mkSquare runStar
 
 -- |

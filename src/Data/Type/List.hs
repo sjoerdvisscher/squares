@@ -2,7 +2,6 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE KindSignatures #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Type.List

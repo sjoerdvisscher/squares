@@ -59,7 +59,7 @@ return = mkSquare (M.return .)
 -- > |  v  |     |   v |
 -- > +--m--+     +---m-+
 bind :: Monad m => Square '[Star m] '[] '[m] '[m]
-bind = mkSquare (flip (>>=) . runStar)
+bind = mkSquare ((=<<) . runStar)
 
 -- |
 -- > +-m-m-+
