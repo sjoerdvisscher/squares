@@ -29,34 +29,35 @@ return = mkSquare (M.return .)
 -- > |  v  |
 -- > +--m--+
 --
--- `(>>=)`
+-- `(>>=)` as a square (or to be precise its flipped version `(=<<)`)
 --
 -- Left identity law:
 --
--- > +-------+
--- > | R>-\  +     +-----+
--- > |    v  |     |     |
--- > m>---B  | === m>-\  |
--- > |    v  |     |  v  |
--- > +----m--+     +--m--+
+-- > +-----+
+-- > |  R  |     +-----+
+-- > |  v  |     |     |
+-- > m>-B  | === m>-\  |
+-- > |  v  |     |  v  |
+-- > +--m--+     +--m--+
 --
 -- Right identity law:
 --
--- > +----m--+     +--m--+
--- > |    v  |     |  |  |
--- > | R>-B  | === |  v  |
--- > |    v  |     |  |  |
--- > +----m--+     +--m--+
+-- > +---m-+
+-- > | R v |     +--m--+
+-- > | v | |     |  |  |
+-- > | \-B | === |  v  |
+-- > |   v |     |  |  |
+-- > +---m-+     +--m--+
 --
 -- Associativity law:
 --
--- > +--m--+     +-----m--+
--- > |  v  |     m>-\  v  |
--- > m>-B  |     |  v  |  |
--- > |  v  | === m>-B  |  |
--- > m>-B  |     |  \->B  |
--- > |  v  |     |     v  |
--- > +--m--+     +-----m--+
+-- > +--m--+     +---m-+
+-- > |  v  |     m>\ v |
+-- > m>-B  |     | v | |
+-- > |  v  | === m>B | |
+-- > m>-B  |     | \-B |
+-- > |  v  |     |   v |
+-- > +--m--+     +---m-+
 bind :: Monad m => Square '[Star m] '[] '[m] '[m]
 bind = mkSquare (flip (>>=) . runStar)
 
@@ -67,7 +68,7 @@ bind = mkSquare (flip (>>=) . runStar)
 -- > |   v |
 -- > +---m-+
 --
--- @join = toRight ||| bind@
+-- > join = toRight ||| bind
 join :: Monad m => Square '[] '[] '[m, m] '[m]
 join = toRight ||| bind
 
@@ -79,5 +80,7 @@ join = toRight ||| bind
 -- > +-----+
 --
 -- Kleisli composition `(M.>=>)`
-kleisli :: Monad m => Square '[Star m, Star m] '[Star m] '[] '[]
-kleisli = fromLeft === bind === toRight
+--
+-- > (>=>) = fromLeft === bind === toRight
+(>=>) :: Monad m => Square '[Star m, Star m] '[Star m] '[] '[]
+(>=>) = fromLeft === bind === toRight

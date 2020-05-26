@@ -31,7 +31,7 @@ arr = mkSquare A.arr
 -- > a--/  |
 -- > +-----+
 (>>>) :: (A.Arrow a, Profunctor a) => Square '[a, a] '[a] '[] '[]
-(>>>) = mkSquare (\(Procompose q p) -> q A.<<< p)
+(>>>) = mkSquare (\(Procompose q p) -> p A.>>> q)
 
 -- |
 -- > +-_⊗d-+

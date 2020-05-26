@@ -93,7 +93,7 @@ funId = mkSquare fmap
 -- @forall a. f a -> g a@. The type above you get when `fmap`ping before or after.
 -- (It doesn't matter which, because of naturality!)
 funNat :: (Functor f, Functor g) => (f ~> g) -> Square '[] '[] '[f] '[g]
-funNat n = mkSquare ((.) n . fmap)
+funNat n = mkSquare ((n .) . fmap)
 
 -- |
 -- > +-----+
@@ -146,7 +146,7 @@ mkSquare n = Square (dimap toPlainF fromPlainF . dimap toPlainP fromPlainP n)
 runSquare
   :: (IsPList ps, IsPList qs, IsFList fs, IsFList gs, Profunctor (PList qs))
   => Square ps qs fs gs
-  -> PlainP ps a b -> PlainP qs (PlainF fs a) (PlainF gs b)
+  -> PlainP ps a b -> PlainP qs (PlainF fs a) (PlainF gs b) -- ^
 runSquare (Square n) = dimap fromPlainP toPlainP (dimap fromPlainF toPlainF . n)
 
 -- |
