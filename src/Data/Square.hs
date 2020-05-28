@@ -262,6 +262,42 @@ uRight =
   toRight
 
 -- |
+-- > +-f-g-+
+-- > | v \>g         funId ||| toRight
+-- > | |   |         ===
+-- > | \-->f         toRight
+-- > +-----+
+toRight2 :: (Functor f, Functor g) => Square '[] '[Star g, Star f] '[f, g] '[]
+toRight2 = (funId ||| toRight) === toRight
+
+-- |
+-- > +-f-g-+
+-- > f</ v |         toLeft ||| funId
+-- > |   | |         ===
+-- > g<--/ |         toLeft
+-- > +-----+
+toLeft2 :: (Functor f, Functor g) => Square '[Costar f, Costar g] '[] '[f, g] '[]
+toLeft2 = (toLeft ||| funId) === toLeft
+
+-- |
+-- > +-----+
+-- > | /--<f         fromRight
+-- > | |   |         ===
+-- > | v /<g         funId ||| fromRight
+-- > +-f-g-+
+fromRight2 :: (Functor f, Functor g) => Square '[] '[Costar f, Costar g] '[] '[f, g]
+fromRight2 = fromRight === (funId ||| fromRight)
+
+-- |
+-- > +-----+
+-- > g>--\ |         fromLeft
+-- > |   | |         ===
+-- > f>\ | |         fromLeft ||| funId
+-- > +-f-g-+
+fromLeft2 :: (Functor f, Functor g) => Square '[Star g, Star f] '[] '[] '[f, g]
+fromLeft2 = fromLeft === (fromLeft ||| funId)
+
+-- |
 -- > +f-f-f+     +--f--+     spiderLemma n =
 -- > |v v v|     f> v <f       fromLeft ||| funId ||| fromRight
 -- > | \|/ |     | \|/ |       ===

@@ -8,8 +8,9 @@
 -----------------------------------------------------------------------------
 module Data.Traversable.Square where
 
-import Prelude hiding (traverse)
+import Prelude hiding (traverse, sequence)
 import Data.Square
+import Data.Bifunctor.Biff
 import Data.Profunctor
 import qualified Data.Traversable as T
 
@@ -47,6 +48,8 @@ import qualified Data.Traversable as T
 -- > g>-T->g     g>/|\>g
 -- > |  v  |     |  v  |
 -- > +--t--+     +--t--+
+--
+-- > traverse = (fromLeft ||| funId) === sequence === (funId ||| toRight)
 traverse :: (Traversable t, Applicative f) => Square '[Star f] '[Star f] '[t] '[t]
 traverse = mkSquare (Star . T.traverse . runStar)
 
@@ -60,3 +63,11 @@ traverse = mkSquare (Star . T.traverse . runStar)
 -- @sequence = toRight ||| traverse ||| fromLeft@
 sequence :: (Traversable t, Applicative f) => Square '[] '[] '[f, t] '[t, f]
 sequence = toRight ||| traverse ||| fromLeft
+
+-- | > mapAccumL :: ((s, a) -> (s, b)) -> (s, t a) -> (s, t b)
+mapAccumL :: Traversable t => Square '[Biff (->) ((,) s) ((,) s)] '[Biff (->) ((,) s) ((,) s)] '[t] '[t]
+mapAccumL = mkSquare (Biff . uncurry . T.mapAccumL . curry . runBiff)
+
+-- | > mapAccumR :: ((s, a) -> (s, b)) -> (s, t a) -> (s, t b)
+mapAccumR :: Traversable t => Square '[Biff (->) ((,) s) ((,) s)] '[Biff (->) ((,) s) ((,) s)] '[t] '[t]
+mapAccumR = mkSquare (Biff . uncurry . T.mapAccumR . curry . runBiff)

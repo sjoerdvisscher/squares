@@ -11,6 +11,7 @@ module Data.Profunctor.Square where
 import Data.Square
 import qualified Data.Profunctor as P
 import Data.Profunctor.Composition
+import Data.Bifunctor.Biff
 
 -- * Squares for profunctor subclasses
 
@@ -89,3 +90,27 @@ fromProcompose = mkSquare id
 -- >  +-----+
 toProcompose :: (P.Profunctor p, P.Profunctor q) => Square '[p, q] '[Procompose q p] '[] '[]
 toProcompose = mkSquare id
+
+-- * Squares for `Biff`
+
+-- |
+-- > +--f--+                                                       +--f--+
+-- > |  v  |                                                             |
+-- > B--@--q   Biff q f g is the "universal filler for the niche":       q
+-- > |  v  |                                                             |
+-- > +--g--+                                                       +--g--+
+fromBiff :: P.Profunctor q => Square '[Biff q f g] '[q] '[f] '[g]
+fromBiff = mkSquare runBiff
+
+-- |
+-- > +-h-f-+
+-- > | v v |      +--h--+
+-- > | \ / |      |  v  |
+-- > p--@--q  ->  p--@--B
+-- > | / \ |      |  v  |
+-- > | v v |      +--k--+
+-- > +-k-g-+
+--
+-- This is the universal property of `Biff`.
+toBiff :: (P.Profunctor q, Functor f, Functor g) => Square '[p] '[q] '[h, f] '[k, g] -> Square '[p] '[Biff q f g] '[h] '[k]
+toBiff sq = mkSquare (Biff . runSquare sq)
