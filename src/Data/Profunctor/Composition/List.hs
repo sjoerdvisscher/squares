@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -5,6 +6,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ConstrainedClassMethods #-}
+#if __GLASGOW_HASKELL__ >= 806
+{-# LANGUAGE QuantifiedConstraints #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Profunctor.Composition.List
@@ -23,6 +27,15 @@ data PList (ps :: [* -> * -> *]) (a :: *) (b :: *) where
   Hom :: { unHom :: a -> b } -> PList '[] a b
   P :: { unP :: p a b } -> PList '[p] a b
   PComp :: p a x -> PList (q ': qs) x b -> PList (p ': q ': qs) a b
+
+#if __GLASGOW_HASKELL__ >= 806
+instance Functor (PList '[] a) where
+  fmap f (Hom ab) = Hom (f . ab)
+instance (forall a. Functor (p a)) => Functor (PList '[p] a) where
+  fmap f (P p) = P (fmap f p)
+instance (forall a. Functor (PList (q ': qs) a)) => Functor (PList (p ': q ': qs) a) where
+  fmap f (PComp p ps) = PComp p (fmap f ps)
+#endif
 
 instance Profunctor (PList '[]) where
   dimap l r (Hom f) = Hom (r . f . l)
