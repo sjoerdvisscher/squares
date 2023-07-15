@@ -1,6 +1,10 @@
 # Revision history for squares
 
-## 0.2 -- 2020-07-08
+## 0.2.1 -- 2023-07-15
+
+* Added `Data.Profunctor.Kan.Square`.
+
+## 0.2 -- 2023-07-08
 
 * Added `Data.Functor.Kan.Square`.
 

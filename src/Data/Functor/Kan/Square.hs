@@ -12,59 +12,51 @@ import Data.Square
 import Data.Profunctor
 import Data.Profunctor.Composition
 import Data.Functor.Compose.List
-
--- | The left Kan extension of a functor @f@ along a profunctor @j@.
---
--- The left Kan extension of a functor @f@ along a functor @g@ is @'Lan' ('Data.Profunctor.Costar' g) f@.
-data Lan j f b = forall a. Lan (j a b) (f a)
+import Data.Functor.Kan.Lan
+import Data.Functor.Kan.Ran
 
 -- |
 -- > +--f--+
 -- > |  v  |
--- > j--@  |
--- > |  v  |
--- > +--L--+
-lanSquare :: Square '[j] '[] '[f] '[Lan j f]
-lanSquare = mkSquare Lan
+-- > |  @  |
+-- > | / \ |
+-- > | v v |
+-- > +-j-L-+
+lanSquare :: Functor f => Square '[] '[] '[f] '[j, Lan j f]
+lanSquare = mkSquare $ \k -> glan . fmap k
 
 -- |
--- > +--f--+
--- > |  v  |     +--L--+
--- > j-\|  |     |  v  |
--- > |  @  | ==> h--@  |
--- > h-/|  |     |  v  |
--- > |  v  |     +--g--+
--- > +--g--+
+-- > +--f--+     +--L--+
+-- > |  v  |     |  v  |
+-- > |  @  | ==> |  @  |
+-- > | / \ |     |  |  |
+-- > | v v |     |  v  |
+-- > +-j-g-+     +--g--+
 --
 -- Any square like the one on the left factors through 'lanSquare'.
 -- 'lanFactor' gives the remaining square.
-lanFactor :: (Profunctor h, IsFList gs) => Square '[j, h] '[] '[f] gs -> Square '[h] '[] '[Lan j f] gs
-lanFactor sq = mkSquare $ \h (Lan j f) -> runSquare sq (Procompose h j) f
-
--- | The right Kan extension of a functor @f@ along a profunctor @j@.
---
--- The right Kan extension of a functor @f@ along a functor @g@ is @'Ran' ('Data.Profunctor.Star' g) f@.
-newtype Ran j f a = Ran { runRan :: forall b. j a b -> f b }
+lanFactor :: Functor g => Square '[] '[] '[f] '[j, g] -> Square '[] '[] '[Lan j f] '[g]
+lanFactor sq = mkSquare $ \k -> fmap k . toLan (runSquare sq id)
 
 -- |
--- > +--R--+
--- > |  v  |
--- > j--@  |
+-- > +-j-R-+
+-- > | v v |
+-- > | \ / |
+-- > |  @  |
 -- > |  v  |
 -- > +--g--+
-ranSquare :: Square '[j] '[] '[Ran j g] '[g]
-ranSquare = mkSquare $ flip runRan
+ranSquare :: Functor g => Square '[] '[] '[j, Ran j g] '[g]
+ranSquare = mkSquare $ \k -> fmap k . gran
 
 -- |
--- > +--f--+
--- > |  v  |     +--f--+
--- > h-\|  |     |  v  |
--- > |  @  | ==> h--@  |
--- > j-/|  |     |  v  |
--- > |  v  |     +--R--+
--- > +--g--+
+-- > +-j-f-+     +--f--+
+-- > | v v |     |  v  |
+-- > | \ / | ==> |  @  |
+-- > |  @  |     |  |  |
+-- > |  v  |     |  v  |
+-- > +--g--+     +--R--+
 --
 -- Any square like the one on the left factors through 'ranSquare'.
 -- 'ranFactor' gives the remaining square.
-ranFactor :: (Profunctor j, IsFList fs) => Square '[h, j] '[] fs '[g] -> Square '[h] '[] fs '[Ran j g]
-ranFactor sq = mkSquare $ \h f -> Ran $ \j -> runSquare sq (Procompose j h) f
+ranFactor :: Functor f => Square '[] '[] '[j, f] '[g] -> Square '[] '[] '[f] '[Ran j g]
+ranFactor sq = mkSquare $ \k -> fmap k . toRan (runSquare sq id)
