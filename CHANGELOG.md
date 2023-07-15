@@ -1,5 +1,9 @@
 # Revision history for squares
 
+## 0.2 -- 2020-07-08
+
+* Added `Data.Functor.Kan.Square`.
+
 ## 0.1.1 -- 2020-05-27
 
 * Added `fromRight2`, `fromLeft2`, `toRight2` and `toLeft2` to `Data.Square`.

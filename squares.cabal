@@ -1,7 +1,7 @@
 cabal-version:       >=1.10
 
 name:                squares
-version:             0.1.1
+version:             0.2
 synopsis:            The double category of Hask functors and profunctors
 description:         A library for working with natural transformations of type
                      .
@@ -34,6 +34,7 @@ library
                        Data.Profunctor.Square
                        Data.Traversable.Square
                        Data.Functor.Adjunction.Square
+                       Data.Functor.Kan.Square
                        Data.Functor.Rep.Square
   build-depends:       base >= 4.9 && < 5
                      , profunctors == 5.*
